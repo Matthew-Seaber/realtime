@@ -23,7 +23,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col selection:bg-theme-blue/20">{children}</body>
+      <head>
+        <meta name="apple-mobile-web-app-title" content="Realtime" />
+      </head>
+      <body className="min-h-full flex flex-col selection:bg-theme-blue/20">
+        {children}
+      </body>
     </html>
   );
 }
