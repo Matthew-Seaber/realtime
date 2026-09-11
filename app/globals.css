@@ -1,13 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #cce0f7;
   --foreground: #171717;
+  --theme-green: #07e192;
+  --theme-amber: #f5bd59;
+  --theme-red: #cf6c6f;
+  --theme-blue: #59adf5;
+
+  --matrix-dots: rgba(180, 210, 215, 0.05);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-theme-green: var(--theme-green);
+  --color-theme-amber: var(--theme-amber);
+  --color-theme-red: var(--theme-red);
+  --color-theme-blue: var(--theme-blue);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -15,7 +26,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #cce0f7;
   }
 }
 
@@ -23,4 +34,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.matrix-dots {
+  background-image: radial-gradient(var(--matrix-dots) 1px, transparent 1px);
+  background-size: 8px 8px;
 }
