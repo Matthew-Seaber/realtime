@@ -63,7 +63,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="matrix-dots flex items-center justify-center min-h-screen p-6 font-mono">
-        <h1 className="text-4xl">Fetching the latest data...</h1>
+        <h1 className="text-4xl cursor-default">Fetching the latest data...</h1>
       </div>
     );
   }
