@@ -2,9 +2,40 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ArrowRight, Split } from "lucide-react";
+
+interface TrainLeg {
+  type: "train";
+  from: string;
+  to: string;
+}
+
+interface BusLeg {
+  type: "bus";
+  from: string; // ATCO code
+  to: string;
+  toName: string;
+  busService?: string;
+}
+
+interface WalkingLeg {
+  type: "walk";
+  description: string;
+  duration: number; // In minutes
+}
+
+type JourneyLeg = TrainLeg | BusLeg | WalkingLeg;
+
+interface Journey {
+  id: string;
+  description: string;
+  legs: JourneyLeg[];
+  connectionMinutesRequired: number;
+}
 
 export default function Home() {
+  const [journeyOptions, setJourneyOptions] = useState<Journey[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdated] = useState(new Date());
   const [lastUpdatedVisible, setLastUpdatedVisible] = useState(false);
@@ -73,9 +104,35 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex flex-row items-center justify-between gap-4">
-        <div className="border border-theme-blue"></div>
-        <div className="border border-theme-blue"></div>
+      <div className="w-full flex flex-row items-center justify-between gap-4">
+        <div className="basis-3/5 flex flex-col gap-2 border-t border-theme-blue/60 p-6">
+          <Separator />
+
+          <div className="flex flex-row items-center justify-between gap-4 text-theme-blue text-xl">
+            <p className="font-semibold">Total journey time</p>
+            <p></p>
+          </div>
+        </div>
+
+        <div className="basis-2/5 flex flex-col gap-4 border border-theme-blue/60 p-6 text-theme-blue">
+          <div className="flex flex-row items-center gap-4">
+            <Split strokeWidth={2.25} className="size-8 shrink-0" />
+
+            <div className="flex flex-col gap-1">
+              <h3 className="font-semibold text-2xl">Alternative route</h3>
+              <p></p>
+            </div>
+          </div>
+
+          <div></div>
+
+          <Separator />
+
+          <div className="flex flex-row items-center justify-between gap-4">
+            <p className="font-semibold">Total journey time</p>
+            <p></p>
+          </div>
+        </div>
       </div>
     </div>
   );
