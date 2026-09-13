@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 interface BusLeg {
   type: "bus";
   from: string; // ATCO code
@@ -14,9 +12,6 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
   } catch (error) {
     console.log("Error fetching bus data:", error);
 
-    return NextResponse.json(
-      { error: "Failed to fetch bus data" },
-      { status: 500 },
-    );
+    throw error;
   }
 }

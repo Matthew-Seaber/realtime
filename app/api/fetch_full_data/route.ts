@@ -18,11 +18,48 @@ export async function GET() {
         if (leg.type === "train") {
           const trainData = await fetchTrainData(leg, currentTime);
 
+          if (!trainData || trainData.length === 0) {
+            break;
+          }
+
+          const validTrains = trainData.filter(
+            (train) =>
+              train.status !== "cancelled" &&
+              train.arrival.estimated &&
+              train.departure.estimated &&
+              new Date(train.arrival.estimated).getTime() <=
+                currentTime.getTime() &&
+              new Date(train.departure.estimated).getTime() <=
+                new Date().getTime(),
+          );
+
+          if (validTrains.length === 0) {
+            break;
+          }
+
+          const bestTrain = validTrains.reduce((best, currentTrain) => {
+            if (!best) return currentTrain;
+
+            const closerArrival =
+              new Date(currentTrain.arrival.estimated!).getTime() >
+              new Date(best.arrival.estimated!).getTime();
+
+            return closerArrival ? currentTrain : best;
+          });
+
           duration =
-            trainData.duration * 60 * 1000 +
+            new Date(bestTrain.arrival.estimated!).getTime() -
+            new Date(bestTrain.departure.estimated!).getTime() +
             journey.connectionMinutesRequired * 60 * 1000;
         } else if (leg.type === "bus") {
           const busData = await fetchBusData(leg, currentTime);
+
+          if (!busData) {
+            return NextResponse.json(
+              { error: "Failed to fetch bus data" },
+              { status: 500 },
+            );
+          }
 
           duration =
             busData.duration * 60 * 1000 +

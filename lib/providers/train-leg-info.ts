@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 interface TrainLeg {
   type: "train";
   from: string; // CRS code
@@ -171,13 +169,10 @@ export async function fetchTrainData(leg: TrainLeg, currentTime: Date) {
       };
     });
 
-    return NextResponse.json(trainData, { status: 200 });
+    return trainData;
   } catch (error) {
     console.log("Error fetching train data:", error);
 
-    return NextResponse.json(
-      { error: "Failed to fetch train data" },
-      { status: 500 },
-    );
+    throw error;
   }
 }
