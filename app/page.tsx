@@ -16,6 +16,7 @@ interface TrainLegResult {
   operatorName: string;
 
   departureTime: string;
+  arrivalTime: string;
 
   platform?: string;
 
@@ -34,6 +35,10 @@ interface BusLegResult {
   busService?: string;
 
   departureTime: string;
+  arrivalTime: string;
+
+  status: "on time" | "delayed" | "cancelled";
+  delayMinutes: number;
 }
 
 interface WalkingLegResult {
@@ -43,6 +48,7 @@ interface WalkingLegResult {
   duration: number; // In minutes
 
   departureTime: string;
+  arrivalTime: string;
 }
 
 type JourneyLegResult = TrainLegResult | BusLegResult | WalkingLegResult;
@@ -66,9 +72,14 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const response = await fetch("/api/fetch_full_data", {
-        method: "GET",
-      });
+      const arrivalTime = new Date();
+      arrivalTime.setHours(9, 0, 0, 0);
+
+      if (new Date(arrivalTime) < new Date()) return;
+
+      const response = await fetch(
+        `/api/fetch_full_data?arrivalTime=${arrivalTime.toISOString()}`,
+      );
 
       if (!response.ok) {
         console.error("Failed to fetch data:", response.statusText);
@@ -82,7 +93,7 @@ export default function Home() {
         thirdBestRoute: JourneyResult;
       };
 
-      if (!data.bestRoute) {
+      if (!data.bestRoute || !data.bestRoute.legs) {
         console.error("No viable route found");
 
         return;
@@ -93,6 +104,26 @@ export default function Home() {
         data.secondBestRoute,
         data.thirdBestRoute,
       ]);
+
+      const bestRouteLastLeg = data.bestRoute.legs.at(-1);
+
+      if (!bestRouteLastLeg) {
+        console.error("No last leg found on the best route");
+
+        return;
+      }
+
+      const bestDateArrivalTime = new Date(bestRouteLastLeg.arrivalTime);
+
+      if (bestDateArrivalTime > new Date(arrivalTime)) {
+        setBestRouteStatus("late");
+      } else if (
+        bestDateArrivalTime > new Date(arrivalTime.getTime() - 5 * 60 * 1000)
+      ) {
+        setBestRouteStatus("close to start");
+      } else {
+        setBestRouteStatus("early");
+      }
 
       setLoading(false);
     }

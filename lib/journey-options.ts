@@ -15,7 +15,7 @@ interface BusLegOption {
   fromName: string;
   toName: string;
 
-  busService?: string;
+  busService?: string[];
 }
 
 interface WalkingLegOption {
@@ -106,7 +106,7 @@ export const JourneyOptions: JourneyOption[] = [
         to: "43000309401",
         fromName: "St Martin's Queensway (NS3)",
         toName: "University Station (QE)",
-        busService: "",
+        busService: ["X20", "X21", "X22"],
       },
       {
         type: "walk",

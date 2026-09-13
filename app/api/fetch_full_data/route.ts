@@ -15,6 +15,7 @@ interface TrainLegResult {
   operatorName: string;
 
   departureTime: string;
+  arrivalTime: string;
 
   platform?: string;
 
@@ -33,15 +34,19 @@ interface BusLegResult {
   busService?: string;
 
   departureTime: string;
+  arrivalTime: string;
+
+  status: "on time" | "delayed" | "cancelled";
+  delayMinutes: number;
 }
 
 interface WalkingLegResult {
   type: "walk";
 
   description: string;
-  duration: number; // In minutes
 
   departureTime: string;
+  arrivalTime: string;
 }
 
 type JourneyLegResult = TrainLegResult | BusLegResult | WalkingLegResult;
@@ -60,11 +65,18 @@ interface Route {
   detailedJourney: JourneyResult;
 }
 
-export async function GET() {
-  const arrivalTime = new Date();
-  arrivalTime.setHours(9, 0, 0, 0);
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const arrivalTime = url.searchParams.get("arrivalTime");
 
-  if (arrivalTime < new Date()) {
+  if (!arrivalTime) {
+    return NextResponse.json(
+      { error: "Missing parameter: arrivalTime" },
+      { status: 400 },
+    );
+  }
+
+  if (new Date(arrivalTime) < new Date()) {
     return NextResponse.json(
       { error: "Arrival time is in the past" },
       { status: 400 },
@@ -75,7 +87,7 @@ export async function GET() {
 
   try {
     for (const journey of JourneyOptions) {
-      let currentTime = arrivalTime;
+      let currentTime = new Date(arrivalTime);
 
       const legResults: JourneyLegResult[] = [];
 
@@ -95,9 +107,7 @@ export async function GET() {
               train.arrival.estimated &&
               train.departure.estimated &&
               new Date(train.arrival.estimated).getTime() <=
-                currentTime.getTime() &&
-              new Date(train.departure.estimated).getTime() <=
-                new Date().getTime(),
+                currentTime.getTime(),
           );
 
           if (validTrains.length === 0) {
@@ -125,6 +135,7 @@ export async function GET() {
             operatorName: bestTrain.operatorName,
 
             departureTime: bestTrain.departure.estimated!,
+            arrivalTime: bestTrain.arrival.estimated!,
 
             platform: bestTrain.platform,
 
@@ -153,11 +164,11 @@ export async function GET() {
             type: "walk",
 
             description: leg.description,
-            duration: leg.duration,
 
             departureTime: new Date(
               currentTime.getTime() - duration,
             ).toISOString(),
+            arrivalTime: currentTime.toISOString(),
           });
         } else {
           return NextResponse.json(
@@ -180,7 +191,7 @@ export async function GET() {
         connectionMinutesRequired: journey.connectionMinutesRequired,
       };
 
-      if (currentTime >= new Date() && currentTime < arrivalTime) {
+      if (currentTime >= new Date() && currentTime < new Date(arrivalTime)) {
         if (currentTime < topRoutes[0]?.startTime || !topRoutes[0]) {
           topRoutes[0] = {
             startTime: currentTime,
