@@ -5,44 +5,100 @@ import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Split } from "lucide-react";
 
-interface TrainLeg {
+interface TrainLegResult {
   type: "train";
-  from: string;
-  to: string;
-}
 
-interface BusLeg {
-  type: "bus";
-  from: string; // ATCO code
-  to: string;
+  from: string; // CRS code
+  to: string; // CRS code
+  fromName: string;
   toName: string;
-  busService?: string;
+
+  operatorName: string;
+
+  departureTime: string;
+
+  platform?: string;
+
+  status: "on time" | "delayed" | "cancelled";
+  delayMinutes: number;
 }
 
-interface WalkingLeg {
+interface BusLegResult {
+  type: "bus";
+
+  from: string; // ATCO code
+  to: string; // ATCO code
+  fromName: string;
+  toName: string;
+
+  busService?: string;
+
+  departureTime: string;
+}
+
+interface WalkingLegResult {
   type: "walk";
+
   description: string;
   duration: number; // In minutes
+
+  departureTime: string;
 }
 
-type JourneyLeg = TrainLeg | BusLeg | WalkingLeg;
+type JourneyLegResult = TrainLegResult | BusLegResult | WalkingLegResult;
 
-interface Journey {
+interface JourneyResult {
   id: string;
   description: string;
-  legs: JourneyLeg[];
+  legs: JourneyLegResult[];
   connectionMinutesRequired: number;
 }
 
 export default function Home() {
-  const [journeyOptions, setJourneyOptions] = useState<Journey[]>([]);
+  const [journeyOptions, setJourneyOptions] = useState<JourneyResult[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastUpdated] = useState(new Date());
   const [lastUpdatedVisible, setLastUpdatedVisible] = useState(false);
   const [bestRouteStatus, setBestRouteStatus] = useState<
     "early" | "close to start" | "late"
   >("early");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const response = await fetch("/api/fetch_full_data", {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        console.error("Failed to fetch data:", response.statusText);
+
+        return;
+      }
+
+      const data = (await response.json()) as {
+        bestRoute: JourneyResult;
+        secondBestRoute: JourneyResult;
+        thirdBestRoute: JourneyResult;
+      };
+
+      if (!data.bestRoute) {
+        console.error("No viable route found");
+
+        return;
+      }
+
+      setJourneyOptions([
+        data.bestRoute,
+        data.secondBestRoute,
+        data.thirdBestRoute,
+      ]);
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

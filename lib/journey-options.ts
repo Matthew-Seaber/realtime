@@ -1,36 +1,40 @@
-interface TrainLeg {
+interface TrainLegOption {
   type: "train";
+
   from: string; // CRS code
   to: string; // CRS code
   fromName: string;
   toName: string;
 }
 
-interface BusLeg {
+interface BusLegOption {
   type: "bus";
+
   from: string; // ATCO code
   to: string; // ATCO code
   fromName: string;
   toName: string;
+
   busService?: string;
 }
 
-interface WalkingLeg {
+interface WalkingLegOption {
   type: "walk";
+
   description: string;
   duration: number; // In minutes
 }
 
-type JourneyLeg = TrainLeg | BusLeg | WalkingLeg;
+type JourneyLegOption = TrainLegOption | BusLegOption | WalkingLegOption;
 
-interface Journey {
+interface JourneyOption {
   id: string;
   description: string;
-  legs: JourneyLeg[];
+  legs: JourneyLegOption[];
   connectionMinutesRequired: number;
 }
 
-export const JourneyOptions: Journey[] = [
+export const JourneyOptions: JourneyOption[] = [
   {
     id: "1",
     description: "Train-only route",
