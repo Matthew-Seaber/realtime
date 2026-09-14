@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import JourneyLeg from "@/components/JourneyLeg";
+
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Split } from "lucide-react";
 
@@ -204,7 +206,15 @@ export default function Home() {
 
       <div className="w-full flex flex-row items-center justify-between gap-4">
         <div className="basis-3/5 flex flex-col gap-2 border-t border-theme-blue/60 p-6">
-          <div></div>
+          <div className="flex flex-col">
+            {journeyOptions[0].legs.map((leg, index) => (
+              <JourneyLeg
+                key={index}
+                leg={leg}
+                lastLeg={index === journeyOptions[0].legs.length - 1}
+              />
+            ))}
+          </div>
 
           <Separator />
 
@@ -231,7 +241,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div></div>
+          <div className="flex flex-col">
+            {journeyOptions[1].legs.map((leg, index) => (
+              <JourneyLeg
+                key={index}
+                leg={leg}
+                lastLeg={index === journeyOptions[1].legs.length - 1}
+              />
+            ))}
+          </div>
 
           <Separator />
 
