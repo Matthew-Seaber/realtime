@@ -36,7 +36,8 @@ interface BusLegResult {
   fromName: string;
   toName: string;
 
-  busService?: string;
+  busService: string;
+  direction: string;
 
   duration: number; // In minutes
 
@@ -79,7 +80,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(17, 0, 0, 0);
+      arrivalTime.setHours(18, 0, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -232,38 +233,42 @@ export default function Home() {
         </div>
 
         <div className="basis-2/5 flex flex-col gap-4 border border-theme-blue/60 p-6 text-theme-blue">
-          <div className="flex flex-row items-center gap-4">
-            <Split strokeWidth={2.25} className="size-8 shrink-0" />
+          {journeyOptions[1] && (
+            <>
+              <div className="flex flex-row items-center gap-4">
+                <Split strokeWidth={2.25} className="size-8 shrink-0" />
 
-            <div className="flex flex-col gap-1">
-              <h3 className="font-semibold text-2xl">Alternative route</h3>
-              <p>{journeyOptions[1].description}</p>
-            </div>
-          </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-semibold text-2xl">Alternative route</h3>
+                  <p>{journeyOptions[1].description}</p>
+                </div>
+              </div>
 
-          <div className="flex flex-col">
-            {journeyOptions[1].legs.map((leg, index) => (
-              <JourneyLeg
-                key={index}
-                leg={leg}
-                lastLeg={index === journeyOptions[1].legs.length - 1}
-              />
-            ))}
-          </div>
+              <div className="flex flex-col">
+                {journeyOptions[1].legs.map((leg, index) => (
+                  <JourneyLeg
+                    key={index}
+                    leg={leg}
+                    lastLeg={index === journeyOptions[1].legs.length - 1}
+                  />
+                ))}
+              </div>
 
-          <Separator />
+              <Separator />
 
-          <div className="flex flex-row items-center justify-between gap-4">
-            <p className="font-semibold">Total journey time</p>
-            <p>
-              {formatDuration(
-                journeyOptions[1].legs.reduce(
-                  (sum, leg) => sum + leg.duration,
-                  0,
-                ),
-              )}
-            </p>
-          </div>
+              <div className="flex flex-row items-center justify-between gap-4">
+                <p className="font-semibold">Total journey time</p>
+                <p>
+                  {formatDuration(
+                    journeyOptions[1].legs.reduce(
+                      (sum, leg) => sum + leg.duration,
+                      0,
+                    ),
+                  )}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

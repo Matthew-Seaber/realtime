@@ -33,7 +33,8 @@ interface BusLegResult {
   fromName: string;
   toName: string;
 
-  busService?: string;
+  busService: string;
+  direction: string;
 
   duration: number; // In minutes
 
@@ -48,6 +49,7 @@ interface WalkingLegResult {
   type: "walk";
 
   description: string;
+  duration: number; // In minutes
 
   departureTime: string;
   arrivalTime: string;
@@ -72,6 +74,7 @@ interface Route {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const arrivalTime = url.searchParams.get("arrivalTime");
+  const now = new Date();
 
   if (!arrivalTime) {
     return NextResponse.json(
@@ -80,7 +83,16 @@ export async function GET(request: Request) {
     );
   }
 
-  if (new Date(arrivalTime) < new Date()) {
+  const targetArrivalTime = new Date(arrivalTime);
+
+  if (Number.isNaN(targetArrivalTime.getTime())) {
+    return NextResponse.json(
+      { error: "Invalid parameter: arrivalTime" },
+      { status: 400 },
+    );
+  }
+
+  if (targetArrivalTime < now) {
     return NextResponse.json(
       { error: "Arrival time is in the past" },
       { status: 400 },
@@ -91,7 +103,8 @@ export async function GET(request: Request) {
 
   try {
     for (const journey of JourneyOptions) {
-      let currentTime = new Date(arrivalTime);
+      let currentTime = new Date(targetArrivalTime);
+      let routeFailed = false;
 
       const legResults: JourneyLegResult[] = [];
 
@@ -102,6 +115,7 @@ export async function GET(request: Request) {
           const trainData = await fetchTrainData(leg, currentTime);
 
           if (!trainData || trainData.length === 0) {
+            routeFailed = true;
             break;
           }
 
@@ -110,11 +124,16 @@ export async function GET(request: Request) {
               train.status !== "cancelled" &&
               train.arrival.estimated &&
               train.departure.estimated &&
+              !Number.isNaN(new Date(train.arrival.estimated).getTime()) &&
+              !Number.isNaN(new Date(train.departure.estimated).getTime()) &&
+              new Date(train.departure.estimated).getTime() <=
+                new Date(train.arrival.estimated).getTime() &&
               new Date(train.arrival.estimated).getTime() <=
                 currentTime.getTime(),
           );
 
           if (validTrains.length === 0) {
+            routeFailed = true;
             break;
           }
 
@@ -154,12 +173,17 @@ export async function GET(request: Request) {
 
           duration =
             new Date(bestTrain.arrival.estimated!).getTime() -
-            new Date(bestTrain.departure.estimated!).getTime() +
-            journey.connectionMinutesRequired * 60000;
+            new Date(bestTrain.departure.estimated!).getTime();
+
+          currentTime = new Date(
+            new Date(bestTrain.departure.estimated!).getTime() -
+              journey.connectionMinutesRequired * 60000,
+          );
         } else if (leg.type === "bus") {
           const busData = await fetchBusData(leg, currentTime);
 
           if (!busData) {
+            routeFailed = true;
             break;
           }
 
@@ -172,6 +196,7 @@ export async function GET(request: Request) {
             toName: leg.toName,
 
             busService: busData.busService,
+            direction: busData.direction,
 
             duration:
               (new Date(busData.arrival.estimated!).getTime() -
@@ -187,8 +212,12 @@ export async function GET(request: Request) {
 
           duration =
             new Date(busData.arrival.estimated!).getTime() -
-            new Date(busData.departure.estimated!).getTime() +
-            journey.connectionMinutesRequired * 60000;
+            new Date(busData.departure.estimated!).getTime();
+
+          currentTime = new Date(
+            new Date(busData.departure.estimated!).getTime() -
+              journey.connectionMinutesRequired * 60000,
+          );
         } else if (leg.type === "walk") {
           duration = leg.duration * 60000;
 
@@ -196,6 +225,7 @@ export async function GET(request: Request) {
             type: "walk",
 
             description: leg.description,
+            duration: leg.duration,
 
             departureTime: new Date(
               currentTime.getTime() - duration,
@@ -209,11 +239,18 @@ export async function GET(request: Request) {
           );
         }
 
-        currentTime = new Date(currentTime.getTime() - duration);
+        if (leg.type === "walk") {
+          currentTime = new Date(currentTime.getTime() - duration);
+        }
 
-        if (currentTime < new Date()) {
+        if (currentTime < now) {
+          routeFailed = true;
           break;
         }
+      }
+
+      if (routeFailed) {
+        continue;
       }
 
       const detailedJourney: JourneyResult = {
@@ -223,37 +260,26 @@ export async function GET(request: Request) {
         connectionMinutesRequired: journey.connectionMinutesRequired,
       };
 
-      if (currentTime >= new Date() && currentTime < new Date(arrivalTime)) {
-        if (currentTime < topRoutes[0]?.startTime || !topRoutes[0]) {
-          topRoutes[0] = {
-            startTime: currentTime,
-            rank: 1,
+      if (currentTime >= now && currentTime < targetArrivalTime) {
+        topRoutes.push({
+          startTime: currentTime,
+          rank: 0,
+          detailedJourney,
+        });
 
-            detailedJourney: detailedJourney,
-          };
-        } else if (currentTime < topRoutes[1]?.startTime || !topRoutes[1]) {
-          topRoutes[1] = {
-            startTime: currentTime,
-            rank: 2,
-
-            detailedJourney: detailedJourney,
-          };
-        } else if (currentTime < topRoutes[2]?.startTime || !topRoutes[2]) {
-          topRoutes[2] = {
-            startTime: currentTime,
-            rank: 3,
-
-            detailedJourney: detailedJourney,
-          };
-        }
+        topRoutes.sort(
+          (first, second) =>
+            first.startTime.getTime() - second.startTime.getTime(),
+        );
+        topRoutes.splice(3);
       }
     }
 
     return NextResponse.json(
       {
         bestRoute: topRoutes[0].detailedJourney,
-        secondBestRoute: topRoutes[1].detailedJourney || null,
-        thirdBestRoute: topRoutes[2].detailedJourney || null,
+        secondBestRoute: topRoutes[1]?.detailedJourney ?? null,
+        thirdBestRoute: topRoutes[2]?.detailedJourney ?? null,
       },
       { status: 200 },
     );

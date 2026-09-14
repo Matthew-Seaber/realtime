@@ -1,4 +1,4 @@
-import { BusFront, Footprints, TrainFront } from "lucide-react";
+import { ArrowRight, BusFront, Footprints, TrainFront } from "lucide-react";
 
 interface TrainLegResult {
   type: "train";
@@ -29,7 +29,8 @@ interface BusLegResult {
   fromName: string;
   toName: string;
 
-  busService?: string;
+  busService: string;
+  direction: string;
 
   duration: number; // In minutes
 
@@ -85,7 +86,27 @@ function JourneyLeg({
           <Footprints className="size-5 text-theme-blue" />
         )}
 
-        <div></div>
+        <div className="flex flex-col gap-1">
+          <h4 className="text-theme-blue">
+            {leg.type === "walk" ? (
+              leg.description
+            ) : (
+              <>
+                <span>{leg.fromName}</span>
+                <ArrowRight className="shrink-0 size-12" />
+                <span>{leg.toName}</span>
+              </>
+            )}
+          </h4>
+          <p className="text-theme-blue/60">
+            {leg.type === "train" &&
+              `${leg.operatorName} • ${leg.platform ? `Platform ${leg.platform}` : "Platform unknown"}`}
+            {leg.type === "bus" &&
+              `${leg.busService} towards ${leg.direction}`}
+            {leg.type === "walk" &&
+              `${leg.duration} minute walk for ${leg.arrivalTime} arrival`}
+          </p>
+        </div>
 
         <p
           className={`capitalize ${status === "on time" ? "text-theme-green" : status === "delayed" || status === "late" ? "text-theme-yellow" : "text-theme-red"}`}

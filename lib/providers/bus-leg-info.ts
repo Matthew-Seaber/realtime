@@ -65,6 +65,10 @@ interface TransportAPIJourneyStop {
   };
 }
 
+function parseDateTime(date: string, time: string): Date {
+  return new Date(`${date}T${time}`);
+}
+
 interface TransportAPIJourney {
   id: string;
   mode: "bus";
@@ -81,6 +85,7 @@ interface BusData {
   id: string;
 
   busService: string;
+  direction: string;
 
   arrival: {
     scheduled: string;
@@ -135,11 +140,13 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
 
     const viableArrivals = filteredArrivals
       .map((arrival) => {
-        const bestDepartureTime = new Date(
-          `${arrival.date}T${arrival.best_departure_estimate}`,
+        const bestDepartureTime = parseDateTime(
+          arrival.expected_departure_date ?? arrival.date,
+          arrival.best_departure_estimate,
         );
-        const scheduledDepartureTime = new Date(
-          `${arrival.date}T${arrival.aimed_departure_time}`,
+        const scheduledDepartureTime = parseDateTime(
+          arrival.date,
+          arrival.aimed_departure_time,
         );
 
         return {
@@ -188,20 +195,48 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
       return null;
     }
 
-    const departureAimed = departureStop.departure?.aimed.time;
-    const departureEstimate =
-      departureStop.departure?.expected?.time ||
-      departureStop.departure?.aimed.time;
+    const destinationStop = journeyData.stops.find(
+      (stop) => stop.atcocode === leg.to,
+    );
 
-    if (!departureAimed || !departureEstimate) {
+    const departureAimed = departureStop.departure?.aimed;
+    const departureExpected = departureStop.departure?.expected;
+    const arrivalAimed = destinationStop?.arrival?.aimed;
+    const arrivalExpected = destinationStop?.arrival?.expected;
+
+    if (!departureAimed || !arrivalAimed) {
       return null;
     }
 
-    const arrivalAimed = bestArrivalBus.scheduledDepartureTime;
-    const arrivalEstimate = bestArrivalBus.bestDepartureTime;
+    const departureAimedTime = parseDateTime(
+      departureAimed.date,
+      departureAimed.time,
+    );
+    const departureEstimateTime = departureExpected
+      ? parseDateTime(departureExpected.date, departureExpected.time)
+      : departureAimedTime;
+    const arrivalAimedTime = parseDateTime(
+      arrivalAimed.date,
+      arrivalAimed.time,
+    );
+    const arrivalEstimateTime = arrivalExpected
+      ? parseDateTime(arrivalExpected.date, arrivalExpected.time)
+      : arrivalAimedTime;
+
+    if (
+      [
+        departureAimedTime,
+        departureEstimateTime,
+        arrivalAimedTime,
+        arrivalEstimateTime,
+      ].some((time) => Number.isNaN(time.getTime())) ||
+      departureEstimateTime >= arrivalEstimateTime
+    ) {
+      return null;
+    }
 
     const delayMinutes = Math.round(
-      (arrivalEstimate.getTime() - arrivalAimed.getTime()) / 60000,
+      (arrivalEstimateTime.getTime() - arrivalAimedTime.getTime()) / 60000,
     );
     const status: BusData["status"] = delayMinutes > 1 ? "delayed" : "on time";
 
@@ -209,15 +244,16 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
       id: bestArrivalBus.arrival.id,
 
       busService: bestArrivalBus.arrival.line,
+      direction: bestArrivalBus.arrival.direction,
 
       arrival: {
-        scheduled: arrivalAimed.toISOString(),
-        estimated: arrivalEstimate.toISOString(),
+        scheduled: arrivalAimedTime.toISOString(),
+        estimated: arrivalEstimateTime.toISOString(),
       },
 
       departure: {
-        scheduled: departureAimed,
-        estimated: departureEstimate,
+        scheduled: departureAimedTime.toISOString(),
+        estimated: departureEstimateTime.toISOString(),
       },
 
       status,
