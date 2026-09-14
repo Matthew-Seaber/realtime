@@ -73,7 +73,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(9, 0, 0, 0);
+      arrivalTime.setHours(12, 45, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 

@@ -98,8 +98,42 @@ interface TrainData {
   delayMinutes: number;
 }
 
+let cachedRTTAccessToken: string | null = null;
+let cachedRTTAccessTokenExpiry: number = 0;
+
+async function getRTTAccessToken() {
+  if (cachedRTTAccessToken && Date.now() < cachedRTTAccessTokenExpiry - 60000) {
+    return cachedRTTAccessToken;
+  }
+
+  const refreshToken = process.env.RTT_REFRESH_TOKEN;
+
+  if (!refreshToken) {
+    throw new Error("Missing RTT refresh token");
+  }
+
+  const response = await fetch("https://data.rtt.io/api/get_access_token", {
+    headers: {
+      Authorization: `Bearer ${refreshToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get RTT access token: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  cachedRTTAccessToken = data.token;
+  cachedRTTAccessTokenExpiry = Date.parse(data.vaalidUntil);
+
+  return data.token;
+}
+
 export async function fetchTrainData(leg: TrainLeg, currentTime: Date) {
   try {
+    const accessToken = await getRTTAccessToken();
+
     const params = new URLSearchParams({
       code: `gb-nr:${leg.to}`,
       filterFrom: `gb-nr:${leg.from}`,
@@ -111,7 +145,7 @@ export async function fetchTrainData(leg: TrainLeg, currentTime: Date) {
       `https://data.rtt.io/rtt/location?${params.toString()}`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.RTT_API_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       },
     );
