@@ -154,8 +154,26 @@ export async function GET(request: Request) {
             break;
           }
 
+          legResults.push({
+            type: "bus",
+
+            from: leg.from,
+            to: leg.to,
+            fromName: leg.fromName,
+            toName: leg.toName,
+
+            busService: busData.busService,
+
+            departureTime: busData.departure.estimated!,
+            arrivalTime: busData.arrival.estimated!,
+
+            status: busData.status,
+            delayMinutes: busData.delayMinutes,
+          });
+
           duration =
-            busData.duration * 60 * 1000 +
+            new Date(busData.arrival.estimated!).getTime() -
+            new Date(busData.departure.estimated!).getTime() +
             journey.connectionMinutesRequired * 60 * 1000;
         } else if (leg.type === "walk") {
           duration = leg.duration * 60 * 1000;
