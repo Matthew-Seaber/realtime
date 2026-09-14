@@ -18,12 +18,63 @@ interface TransportAPIDeparture {
 
   date: string;
   aimed_departure_time: string;
-  expected_departure_time: string | null;
+
+  expected_departure_date?: string;
+  expected_departure_time?: string;
+
   best_departure_estimate: string;
+
+  status: {
+    cancellation: {
+      value: boolean;
+      reason?: string;
+    };
+  };
 }
 
 interface TransportAPIStopTimetable {
-  departures: Record<string, TransportAPIDeparture[]>;
+  departures: {
+    all: TransportAPIDeparture[];
+  };
+}
+
+interface TransportAPIJourneyStop {
+  atco_code: string;
+  name: string;
+
+  arrival?: {
+    aimed: {
+      date: string;
+      time: string;
+    };
+    expected?: {
+      date: string;
+      time: string;
+    };
+  };
+
+  departure?: {
+    aimed: {
+      date: string;
+      time: string;
+    };
+    expected?: {
+      date: string;
+      time: string;
+    };
+  };
+}
+
+interface TransportAPIJourney {
+  id: string;
+  mode: "bus";
+
+  line: string;
+  line_name: string;
+  direction: string;
+  operator_name: string;
+
+  stops: TransportAPIJourneyStop[];
 }
 
 interface BusData {
@@ -47,103 +98,84 @@ interface BusData {
 
 export async function fetchBusData(leg: BusLeg, currentTime: Date) {
   try {
-    const departureParams = new URLSearchParams({
+    const params = new URLSearchParams({
       app_id: process.env.TRANSPORT_API_APP_ID!,
       app_key: process.env.TRANSPORT_API_APP_KEY!,
-      atcocode: leg.from,
-    });
-    const arrivalParams = new URLSearchParams({
-      app_id: process.env.TRANSPORT_API_APP_ID!,
-      app_key: process.env.TRANSPORT_API_APP_KEY!,
-      atcocode: leg.to,
     });
 
-    const [departureResponse, arrivalResponse] = await Promise.all([
-      fetch(
-        `https://transportapi.com/v3/uk/bus/stop_timetables/?${departureParams.toString()}`,
-      ),
-      fetch(
-        `https://transportapi.com/v3/uk/bus/stop_timetables/?${arrivalParams.toString()}`,
-      ),
-    ]);
+    const arrivalResponse = await fetch(
+      `https://transportapi.com/v3/uk/bus/stop_timetables/${leg.to}?${params.toString()}`,
+    );
 
-    if (!departureResponse.ok || !arrivalResponse.ok) {
-      throw new Error(
-        `Failed to fetch bus data: ${departureResponse.status}, ${arrivalResponse.status}`,
-      );
+    if (!arrivalResponse.ok) {
+      throw new Error(`Failed to fetch bus data: ${arrivalResponse.status}`);
     }
 
-    const departureData: TransportAPIStopTimetable =
-      await departureResponse.json();
     const arrivalData: TransportAPIStopTimetable = await arrivalResponse.json();
 
-    const departures: TransportAPIDeparture[] = Object.values(
-      departureData.departures,
-    ).flat();
-    const arrivals: TransportAPIDeparture[] = Object.values(
-      arrivalData.departures,
-    ).flat();
+    const arrivals: TransportAPIDeparture[] = arrivalData.departures.all;
 
-    const filteredDepartures = departures.filter((departure) => {
-      if (!leg.busService || leg.busService.includes(departure.line)) {
-        return true;
+    const filteredArrivals = arrivals.filter((arrival) => {
+      if (leg.busService && !leg.busService.includes(arrival.line)) {
+        return false;
       }
-      return false;
+
+      if (arrival.status.cancellation.value) {
+        return false;
+      }
+
+      return true;
     });
 
-    const matchedJourneys = filteredDepartures
-      .map((departure) => {
-        const matchingArrival = arrivals.find((bus) => bus.id === departure.id);
+    const latestDepartureTime = new Date(currentTime.getTime() - 60 * 1000); // Allows for unloading/loading time at the stop
 
-        if (!matchingArrival) {
-          return null;
-        }
-
-        const departureTime = new Date(
-          `${departure.date}T${departure.best_departure_estimate}`,
+    const viableArrivals = filteredArrivals
+      .map((arrival) => {
+        const bestDepartureTime = new Date(
+          `${arrival.date}T${arrival.best_departure_estimate}`,
         );
-        const arrivalTime = new Date(
-          `${matchingArrival.date}T${matchingArrival.best_departure_estimate}`,
+        const scheduledDepartureTime = new Date(
+          `${arrival.date}T${arrival.aimed_departure_time}`,
         );
 
         return {
-          departure,
-          matchingArrival,
-          departureTime,
-          arrivalTime,
+          arrival,
+          bestDepartureTime,
+          scheduledDepartureTime,
         };
       })
-      .filter((journey) => journey !== null)
-      .filter((journey) => {
-        return (
-          journey.departureTime < currentTime &&
-          journey.arrivalTime < currentTime
-        );
+      .filter(({ bestDepartureTime }) => {
+        return bestDepartureTime <= latestDepartureTime;
       });
 
-    if (matchedJourneys.length === 0) {
+    if (viableArrivals.length === 0) {
       return null;
     }
 
-    matchedJourneys.sort(
-      (a, b) => b.arrivalTime.getTime() - a.arrivalTime.getTime(),
+    viableArrivals.sort(
+      (a, b) => b.bestDepartureTime.getTime() - a.bestDepartureTime.getTime(),
     );
 
-    const bestJourney = matchedJourneys[0];
+    const bestArrival = viableArrivals[0];
 
-    if (!bestJourney) {
+    if (!bestArrival) {
       return null;
     }
 
-    const departure = bestJourney.departure;
-    const arrival = bestJourney.matchingArrival;
+    const journeyResponse = await fetch(
+      `${bestArrival.arrival.id}&${params.toString()}`,
+    );
 
-    const arrivalAimed = new Date(
-      `${arrival.date}T${arrival.aimed_departure_time}`,
-    );
-    const arrivalEstimate = new Date(
-      `${arrival.date}T${arrival.best_departure_estimate}`,
-    );
+    if (!journeyResponse.ok) {
+      throw new Error(
+        `Failed to fetch bus journey data: ${journeyResponse.status}`,
+      );
+    }
+
+    const journeyData: TransportAPIJourney = await journeyResponse.json();
+
+    const arrivalAimed = bestArrival.scheduledDepartureTime;
+    const arrivalEstimate = bestArrival.bestDepartureTime;
 
     const delayMinutes = Math.round(
       (arrivalEstimate.getTime() - arrivalAimed.getTime()) / 60000,
@@ -151,18 +183,18 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     const status: BusData["status"] = delayMinutes > 1 ? "delayed" : "on time";
 
     const busData: BusData = {
-      id: bestJourney.departure.id,
+      id: bestArrival.arrival.id,
 
-      busService: bestJourney.departure.line,
+      busService: bestArrival.arrival.line,
 
       arrival: {
-        scheduled: arrival.aimed_departure_time,
-        estimated: arrival.best_departure_estimate,
+        scheduled: bestArrival.scheduledDepartureTime.toISOString(),
+        estimated: bestArrival.bestDepartureTime.toISOString(),
       },
 
       departure: {
-        scheduled: departure.aimed_departure_time,
-        estimated: departure.best_departure_estimate,
+        scheduled: ,
+        estimated: ,
       },
 
       status,
