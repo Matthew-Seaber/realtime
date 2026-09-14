@@ -71,29 +71,31 @@ function JourneyLeg({
     <div className="relative flex flex-row gap-4">
       <div className="w-4 relative flex justify-center shrink-0">
         {!lastLeg && (
-          <div className="absolute top-2 -bottom-px w-px bg-theme-blue/80" />
+          <div className="absolute top-2 -bottom-px w-0.5 bg-theme-blue/80" />
         )}
 
-        <div className="mt-1 relative size-3 rounded-full z-20 bg-theme-blue" />
+        <div className="mt-1 relative size-4 rounded-full z-20 bg-theme-blue" />
       </div>
 
-      <div className="flex-1 pb-8">
+      <div className="flex-1 flex flex-row justify-between gap-4 pb-8">
+        <h5 className="text-xl text-theme-blue">{leg.departureTime}</h5>
+
         {leg.type === "train" && (
-          <TrainFront className="size-5 text-theme-blue" />
+          <TrainFront className="size-8 text-theme-blue" />
         )}
-        {leg.type === "bus" && <BusFront className="size-5 text-theme-blue" />}
+        {leg.type === "bus" && <BusFront className="size-8 text-theme-blue" />}
         {leg.type === "walk" && (
-          <Footprints className="size-5 text-theme-blue" />
+          <Footprints className="size-8 text-theme-blue" />
         )}
 
         <div className="flex flex-col gap-1">
-          <h4 className="text-theme-blue">
+          <h4 className="flex flex-row items-center gap-2 text-2xl text-theme-blue">
             {leg.type === "walk" ? (
               leg.description
             ) : (
               <>
                 <span>{leg.fromName}</span>
-                <ArrowRight className="shrink-0 size-12" />
+                <ArrowRight className="shrink-0 size-8" />
                 <span>{leg.toName}</span>
               </>
             )}
@@ -101,10 +103,15 @@ function JourneyLeg({
           <p className="text-theme-blue/60">
             {leg.type === "train" &&
               `${leg.operatorName} • ${leg.platform ? `Platform ${leg.platform}` : "Platform unknown"}`}
-            {leg.type === "bus" &&
-              `${leg.busService} towards ${leg.direction}`}
+            {leg.type === "bus" && `${leg.busService} towards ${leg.direction}`}
             {leg.type === "walk" &&
-              `${leg.duration} minute walk for ${leg.arrivalTime} arrival`}
+              `${leg.duration} minute walk for ${new Date(
+                leg.arrivalTime,
+              ).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })} arrival`}
           </p>
         </div>
 
