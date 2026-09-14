@@ -15,6 +15,8 @@ interface TrainLegResult {
 
   operatorName: string;
 
+  duration: number; // In minutes
+
   departureTime: string;
   arrivalTime: string;
 
@@ -33,6 +35,8 @@ interface BusLegResult {
   toName: string;
 
   busService?: string;
+
+  duration: number; // In minutes
 
   departureTime: string;
   arrivalTime: string;
@@ -73,7 +77,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(12, 45, 0, 0);
+      arrivalTime.setHours(17, 0, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -89,8 +93,8 @@ export default function Home() {
 
       const data = (await response.json()) as {
         bestRoute: JourneyResult;
-        secondBestRoute: JourneyResult;
-        thirdBestRoute: JourneyResult;
+        secondBestRoute: JourneyResult | null;
+        thirdBestRoute: JourneyResult | null;
       };
 
       if (!data.bestRoute || !data.bestRoute.legs) {
@@ -99,11 +103,11 @@ export default function Home() {
         return;
       }
 
-      setJourneyOptions([
-        data.bestRoute,
-        data.secondBestRoute,
-        data.thirdBestRoute,
-      ]);
+      setJourneyOptions(
+        [data.bestRoute, data.secondBestRoute, data.thirdBestRoute].filter(
+          (route): route is JourneyResult => route !== null,
+        ),
+      );
 
       const bestRouteLastLeg = data.bestRoute.legs.at(-1);
 
@@ -146,6 +150,13 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, []);
+
+  function formatDuration(duration: number): string {
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+
+    return `${hours > 0 ? `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min${minutes === 1 ? "" : "s"}` : `${minutes} min${minutes === 1 ? "" : "s"}`}`;
+  }
 
   if (loading) {
     return (
@@ -193,11 +204,20 @@ export default function Home() {
 
       <div className="w-full flex flex-row items-center justify-between gap-4">
         <div className="basis-3/5 flex flex-col gap-2 border-t border-theme-blue/60 p-6">
+          <div></div>
+
           <Separator />
 
           <div className="flex flex-row items-center justify-between gap-4 text-theme-blue text-xl">
             <p className="font-semibold">Total journey time</p>
-            <p></p>
+            <p>
+              {formatDuration(
+                journeyOptions[0].legs.reduce(
+                  (sum, leg) => sum + leg.duration,
+                  0,
+                ),
+              )}
+            </p>
           </div>
         </div>
 
@@ -207,7 +227,7 @@ export default function Home() {
 
             <div className="flex flex-col gap-1">
               <h3 className="font-semibold text-2xl">Alternative route</h3>
-              <p></p>
+              <p>{journeyOptions[1].description}</p>
             </div>
           </div>
 
@@ -217,7 +237,14 @@ export default function Home() {
 
           <div className="flex flex-row items-center justify-between gap-4">
             <p className="font-semibold">Total journey time</p>
-            <p></p>
+            <p>
+              {formatDuration(
+                journeyOptions[1].legs.reduce(
+                  (sum, leg) => sum + leg.duration,
+                  0,
+                ),
+              )}
+            </p>
           </div>
         </div>
       </div>

@@ -14,6 +14,8 @@ interface TrainLegResult {
 
   operatorName: string;
 
+  duration: number; // In minutes
+
   departureTime: string;
   arrivalTime: string;
 
@@ -32,6 +34,8 @@ interface BusLegResult {
   toName: string;
 
   busService?: string;
+
+  duration: number; // In minutes
 
   departureTime: string;
   arrivalTime: string;
@@ -134,6 +138,11 @@ export async function GET(request: Request) {
 
             operatorName: bestTrain.operatorName,
 
+            duration:
+              (new Date(bestTrain.arrival.estimated!).getTime() -
+                new Date(bestTrain.departure.estimated!).getTime()) /
+              60000,
+
             departureTime: bestTrain.departure.estimated!,
             arrivalTime: bestTrain.arrival.estimated!,
 
@@ -146,7 +155,7 @@ export async function GET(request: Request) {
           duration =
             new Date(bestTrain.arrival.estimated!).getTime() -
             new Date(bestTrain.departure.estimated!).getTime() +
-            journey.connectionMinutesRequired * 60 * 1000;
+            journey.connectionMinutesRequired * 60000;
         } else if (leg.type === "bus") {
           const busData = await fetchBusData(leg, currentTime);
 
@@ -164,6 +173,11 @@ export async function GET(request: Request) {
 
             busService: busData.busService,
 
+            duration:
+              (new Date(busData.arrival.estimated!).getTime() -
+                new Date(busData.departure.estimated!).getTime()) /
+              60000,
+
             departureTime: busData.departure.estimated!,
             arrivalTime: busData.arrival.estimated!,
 
@@ -174,9 +188,9 @@ export async function GET(request: Request) {
           duration =
             new Date(busData.arrival.estimated!).getTime() -
             new Date(busData.departure.estimated!).getTime() +
-            journey.connectionMinutesRequired * 60 * 1000;
+            journey.connectionMinutesRequired * 60000;
         } else if (leg.type === "walk") {
-          duration = leg.duration * 60 * 1000;
+          duration = leg.duration * 60000;
 
           legResults.push({
             type: "walk",
@@ -238,8 +252,8 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         bestRoute: topRoutes[0].detailedJourney,
-        secondBestRoute: topRoutes[1].detailedJourney,
-        thirdBestRoute: topRoutes[2].detailedJourney,
+        secondBestRoute: topRoutes[1].detailedJourney || null,
+        thirdBestRoute: topRoutes[2].detailedJourney || null,
       },
       { status: 200 },
     );
