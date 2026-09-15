@@ -80,7 +80,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(18, 0, 0, 0);
+      arrivalTime.setHours(15, 30, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -95,7 +95,7 @@ export default function Home() {
       }
 
       const data = (await response.json()) as {
-        bestRoute: JourneyResult;
+        bestRoute: JourneyResult | null;
         secondBestRoute: JourneyResult | null;
         thirdBestRoute: JourneyResult | null;
       };

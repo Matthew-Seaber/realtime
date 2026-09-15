@@ -104,6 +104,7 @@ export async function GET(request: Request) {
   try {
     for (const journey of JourneyOptions) {
       let currentTime = new Date(targetArrivalTime);
+      let transitLegsProcessed = 0;
       let routeFailed = false;
 
       const legResults: JourneyLegResult[] = [];
@@ -119,18 +120,28 @@ export async function GET(request: Request) {
             break;
           }
 
-          const validTrains = trainData.filter(
-            (train) =>
-              train.status !== "cancelled" &&
-              train.arrival.estimated &&
-              train.departure.estimated &&
-              !Number.isNaN(new Date(train.arrival.estimated).getTime()) &&
-              !Number.isNaN(new Date(train.departure.estimated).getTime()) &&
-              new Date(train.departure.estimated).getTime() <=
-                new Date(train.arrival.estimated).getTime() &&
-              new Date(train.arrival.estimated).getTime() <=
-                currentTime.getTime(),
-          );
+          const validTrains = trainData.flatMap((train) => {
+            if (train.status === "cancelled") {
+              return [];
+            }
+
+            const arrivalTime =
+              train.arrival.estimated ?? train.arrival.scheduled;
+            const departureTime =
+              train.departure.estimated ?? train.departure.scheduled;
+            const arrivalTimestamp = new Date(arrivalTime).getTime();
+            const departureTimestamp = new Date(departureTime).getTime();
+
+            if (
+              Number.isNaN(arrivalTimestamp) ||
+              Number.isNaN(departureTimestamp) ||
+              arrivalTimestamp > currentTime.getTime()
+            ) {
+              return [];
+            }
+
+            return [{ train, arrivalTime, departureTime }];
+          });
 
           if (validTrains.length === 0) {
             routeFailed = true;
@@ -140,12 +151,14 @@ export async function GET(request: Request) {
           const bestTrain = validTrains.reduce((best, currentTrain) => {
             if (!best) return currentTrain;
 
-            const closerArrival =
-              new Date(currentTrain.arrival.estimated!).getTime() >
-              new Date(best.arrival.estimated!).getTime();
+            const laterDeparture =
+              new Date(currentTrain.departureTime).getTime() >
+              new Date(best.departureTime).getTime();
 
-            return closerArrival ? currentTrain : best;
+            return laterDeparture ? currentTrain : best;
           });
+
+          const selectedTrain = bestTrain.train;
 
           legResults.push({
             type: "train",
@@ -155,34 +168,40 @@ export async function GET(request: Request) {
             fromName: leg.fromName,
             toName: leg.toName,
 
-            operatorName: bestTrain.operatorName,
+            operatorName: selectedTrain.operatorName,
 
             duration:
-              (new Date(bestTrain.arrival.estimated!).getTime() -
-                new Date(bestTrain.departure.estimated!).getTime()) /
+              (new Date(bestTrain.arrivalTime).getTime() -
+                new Date(bestTrain.departureTime).getTime()) /
               60000,
 
-            departureTime: bestTrain.departure.estimated!,
-            arrivalTime: bestTrain.arrival.estimated!,
+            departureTime: bestTrain.departureTime,
+            arrivalTime: bestTrain.arrivalTime,
 
-            platform: bestTrain.platform,
+            platform: selectedTrain.platform,
 
-            status: bestTrain.status,
-            delayMinutes: bestTrain.delayMinutes,
+            status: selectedTrain.status,
+            delayMinutes: selectedTrain.delayMinutes,
           });
 
           duration =
-            new Date(bestTrain.arrival.estimated!).getTime() -
-            new Date(bestTrain.departure.estimated!).getTime();
+            new Date(bestTrain.arrivalTime).getTime() -
+            new Date(bestTrain.departureTime).getTime();
 
-          currentTime = new Date(
-            new Date(bestTrain.departure.estimated!).getTime() -
-              journey.connectionMinutesRequired * 60000,
-          );
+          const departureTime = new Date(bestTrain.departureTime);
+          currentTime =
+            transitLegsProcessed === 0
+              ? departureTime
+              : new Date(
+                  departureTime.getTime() -
+                    journey.connectionMinutesRequired * 60000,
+                );
+          transitLegsProcessed++;
         } else if (leg.type === "bus") {
           const busData = await fetchBusData(leg, currentTime);
 
           if (!busData) {
+            console.log("no bus data");
             routeFailed = true;
             break;
           }
@@ -214,10 +233,15 @@ export async function GET(request: Request) {
             new Date(busData.arrival.estimated!).getTime() -
             new Date(busData.departure.estimated!).getTime();
 
-          currentTime = new Date(
-            new Date(busData.departure.estimated!).getTime() -
-              journey.connectionMinutesRequired * 60000,
-          );
+          const departureTime = new Date(busData.departure.estimated!);
+          currentTime =
+            transitLegsProcessed === 0
+              ? departureTime
+              : new Date(
+                  departureTime.getTime() -
+                    journey.connectionMinutesRequired * 60000,
+                );
+          transitLegsProcessed++;
         } else if (leg.type === "walk") {
           duration = leg.duration * 60000;
 
@@ -245,11 +269,13 @@ export async function GET(request: Request) {
 
         if (currentTime < now) {
           routeFailed = true;
+          console.log("current time < now");
           break;
         }
       }
 
       if (routeFailed) {
+        console.log("route failed");
         continue;
       }
 
@@ -260,6 +286,8 @@ export async function GET(request: Request) {
         connectionMinutesRequired: journey.connectionMinutesRequired,
       };
 
+      console.log(detailedJourney);
+
       if (currentTime >= now && currentTime < targetArrivalTime) {
         topRoutes.push({
           startTime: currentTime,
@@ -269,7 +297,7 @@ export async function GET(request: Request) {
 
         topRoutes.sort(
           (first, second) =>
-            first.startTime.getTime() - second.startTime.getTime(),
+            second.startTime.getTime() - first.startTime.getTime(),
         );
         topRoutes.splice(3);
       }
@@ -277,7 +305,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        bestRoute: topRoutes[0].detailedJourney,
+        bestRoute: topRoutes[0]?.detailedJourney ?? null,
         secondBestRoute: topRoutes[1]?.detailedJourney ?? null,
         thirdBestRoute: topRoutes[2]?.detailedJourney ?? null,
       },
