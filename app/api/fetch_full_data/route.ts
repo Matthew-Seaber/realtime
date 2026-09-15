@@ -116,6 +116,7 @@ export async function GET(request: Request) {
           const trainData = await fetchTrainData(leg, currentTime);
 
           if (!trainData || trainData.length === 0) {
+            console.log("No train data returned");
             routeFailed = true;
             break;
           }
@@ -274,7 +275,7 @@ export async function GET(request: Request) {
       }
 
       if (routeFailed) {
-        console.log("Route failed");
+        console.log(`Route failed (${journey.id})`);
         continue;
       }
 
@@ -284,8 +285,6 @@ export async function GET(request: Request) {
         legs: legResults.reverse(),
         connectionMinutesRequired: journey.connectionMinutesRequired,
       };
-
-      console.log(detailedJourney);
 
       if (currentTime >= now && currentTime < targetArrivalTime) {
         topRoutes.push({

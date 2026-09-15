@@ -76,7 +76,7 @@ function JourneyLeg({
   }
 
   return (
-    <div className="relative grid grid-cols-[24px_80px_48px_1fr_108px] gap-4">
+    <div className="relative grid grid-cols-[24px_108px_48px_1fr_124px] gap-4">
       <div className="w-4 relative flex justify-center shrink-0">
         {!lastLeg && (
           <div className="absolute top-2 -bottom-px w-0.5 bg-theme-blue/80" />
@@ -85,16 +85,16 @@ function JourneyLeg({
         <div className="mt-1 relative size-4 rounded-full z-20 bg-theme-blue" />
       </div>
 
-      <h5 className="text-xl">{formatTime(leg.departureTime)}</h5>
+      <h5 className="text-2xl">{formatTime(leg.departureTime)}</h5>
 
-      <div className="flex justify-center">
+      <div className="mt-2 flex justify-center">
         {leg.type === "train" && <TrainFront className="size-8" />}
         {leg.type === "bus" && <BusFront className="size-8" />}
         {leg.type === "walk" && <Footprints className="size-8" />}
       </div>
 
       <div className="min-w-0 pb-12">
-        <h4 className="flex flex-row items-center gap-2 text-2xl">
+        <h4 className="flex flex-row items-center gap-2 text-3xl">
           {leg.type === "walk" ? (
             leg.description
           ) : (
@@ -105,7 +105,7 @@ function JourneyLeg({
             </>
           )}
         </h4>
-        <p className="text-theme-blue/80">
+        <p className="text-lg text-theme-blue/80">
           {leg.type === "train" &&
             `${leg.operatorName} • ${leg.platform ? `Platform ${leg.platform}` : "Platform unknown"}`}
           {leg.type === "bus" && `${leg.busService} towards ${leg.direction}`}
@@ -121,7 +121,7 @@ function JourneyLeg({
       </div>
 
       <p
-        className={`first-letter:uppercase text-end ${status === "on time" ? "text-theme-green" : status === "delayed" || status === "late" ? "text-theme-amber" : "text-theme-red"}`}
+        className={`first-letter:uppercase text-xl text-end ${status === "on time" ? "text-theme-green" : status === "delayed" || status === "late" ? "text-theme-amber" : "text-theme-red"}`}
       >
         {status}
       </p>

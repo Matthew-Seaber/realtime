@@ -75,12 +75,13 @@ export default function Home() {
   const [bestRouteStatus, setBestRouteStatus] = useState<
     "early" | "close to start" | "late"
   >("early");
+  const [singularRouteShowing, setSingularRouteShowing] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(16, 30, 0, 0);
+      arrivalTime.setHours(19, 0, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -111,6 +112,10 @@ export default function Home() {
           (route): route is JourneyResult => route !== null,
         ),
       );
+
+      if (data.secondBestRoute) {
+        setSingularRouteShowing(false);
+      }
 
       const bestRouteLastLeg = data.bestRoute.legs.at(-1);
 
@@ -206,7 +211,9 @@ export default function Home() {
       </div>
 
       <div className="mt-4 w-full flex flex-row items-end justify-between gap-4">
-        <div className="basis-3/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6">
+        <div
+          className={`${singularRouteShowing ? "basis-5/5" : "basis-3/5"} basis-5/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6`}
+        >
           <div className="flex flex-col">
             {journeyOptions[0].legs.map((leg, index) => (
               <JourneyLeg
@@ -219,7 +226,7 @@ export default function Home() {
 
           <Separator />
 
-          <div className="flex flex-row items-center justify-between gap-4 text-theme-blue text-xl">
+          <div className="flex flex-row items-center justify-between gap-4 text-theme-blue text-2xl">
             <p className="font-semibold">Total journey time</p>
             <p>
               {formatDuration(
@@ -232,7 +239,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="basis-2/5 flex flex-col gap-4 border border-theme-blue/60 p-6 text-theme-blue">
+        <div
+          className={`${singularRouteShowing ? "hidden" : "basis-2/5 flex flex-col"} gap-4 border border-theme-blue/60 p-6 text-theme-blue`}
+        >
           {journeyOptions[1] && (
             <>
               <div className="flex flex-row items-center gap-4">

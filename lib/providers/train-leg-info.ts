@@ -125,83 +125,139 @@ async function getRTTAccessToken() {
   const data = await response.json();
 
   cachedRTTAccessToken = data.token;
-  cachedRTTAccessTokenExpiry = Date.parse(data.vaalidUntil);
+  cachedRTTAccessTokenExpiry = Date.parse(data.validUntil);
 
   return data.token;
 }
 
-export async function fetchTrainData(leg: TrainLeg, currentTime: Date) {
+export async function fetchTrainData(
+  leg: TrainLeg,
+  currentTime: Date,
+): Promise<TrainData[] | null> {
   try {
     const accessToken = await getRTTAccessToken();
 
-    const params = new URLSearchParams({
-      code: `gb-nr:${leg.to}`,
-      filterFrom: `gb-nr:${leg.from}`,
-      timeFrom: new Date().toISOString(),
+    const timeFrom = new Date(currentTime.getTime() - 2 * 60 * 60 * 1000); // 2 hours before currentTime
+
+    const departureParams = new URLSearchParams({
+      code: `gb-nr:${leg.from}`,
+      filterTo: `gb-nr:${leg.to}`,
+      timeFrom: timeFrom.toISOString(),
       timeTo: currentTime.toISOString(),
     });
 
-    const response = await fetch(
-      `https://data.rtt.io/rtt/location?${params.toString()}`,
-      {
+    const arrivalParams = new URLSearchParams({
+      code: `gb-nr:${leg.to}`,
+      filterFrom: `gb-nr:${leg.from}`,
+      timeFrom: timeFrom.toISOString(),
+      timeTo: currentTime.toISOString(),
+    });
+
+    const [departureResponse, arrivalResponse] = await Promise.all([
+      fetch(`https://data.rtt.io/rtt/location?${departureParams.toString()}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      },
-    );
+      }),
+      fetch(`https://data.rtt.io/rtt/location?${arrivalParams.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }),
+    ]);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch train data: ${response.statusText}`);
+    if (!departureResponse.ok || !arrivalResponse.ok) {
+      console.log(
+        `Failed to fetch train data: ${departureResponse.statusText} | ${arrivalResponse.statusText}`,
+      );
+      return null;
     }
 
-    const data = await response.json();
+    const departureData = await departureResponse.json();
+    const arrivalData = await arrivalResponse.json();
 
-    const trainData: TrainData[] = data.services.map((service: RTTService) => {
-      const scheduleData = service.scheduleMetadata;
-      const temporalData = service.temporalData;
-      const locationData = service.locationMetadata;
+    const departures = new Map<string, RTTService>();
+
+    for (const service of departureData.services) {
+      departures.set(service.scheduleMetadata.uniqueIdentity, service);
+    }
+
+    const trainData: TrainData[] = [];
+
+    for (const arrivalService of arrivalData.services) {
+      const id = arrivalService.scheduleMetadata.uniqueIdentity;
+
+      if (!id) {
+        continue;
+      }
+
+      const departureService = departures.get(id);
+
+      if (!departureService) {
+        continue;
+      }
+
+      const departure =
+        departureService.temporalData?.departure ??
+        departureService.temporalData?.pass;
+      const arrival =
+        arrivalService.temporalData?.arrival ??
+        arrivalService.temporalData?.pass;
+
+      if (!departure || !arrival) {
+        continue;
+      }
+
+      const arrivalScheduled =
+        arrival.scheduleAdvertised ?? arrival.scheduleInternal;
+      const departureScheduled =
+        departure.scheduleAdvertised ?? departure.scheduleInternal;
+
+      if (!arrivalScheduled || !departureScheduled) {
+        continue;
+      }
 
       const delayMinutes =
-        temporalData.arrival?.realtimeAdvertisedLateness ??
-        temporalData.departure?.realtimeAdvertisedLateness ??
+        arrival.realtimeAdvertisedLateness ??
+        departure.realtimeAdvertisedLateness ??
         0;
       const status: TrainData["status"] =
-        temporalData.arrival?.isCancelled || temporalData.departure?.isCancelled
+        arrival.isCancelled || departure.isCancelled
           ? "cancelled"
           : delayMinutes > 1
             ? "delayed"
             : "on time";
 
-      return {
-        id: scheduleData.uniqueIdentity,
+      trainData.push({
+        id,
 
-        operatorName: scheduleData.operator.name,
+        operatorName: departureService.scheduleMetadata.operator.name,
 
         arrival: {
-          scheduled: temporalData.arrival?.scheduleAdvertised ?? "",
+          scheduled: arrivalScheduled,
           estimated:
-            temporalData.arrival?.realtimeActual ??
-            temporalData.arrival?.realtimeForecast ??
-            "",
+            arrival.realtimeActual ??
+            arrival.realtimeForecast ??
+            arrival.realtimeEstimate,
         },
 
         departure: {
-          scheduled: temporalData.departure?.scheduleAdvertised ?? "",
+          scheduled: departureScheduled,
           estimated:
-            temporalData.departure?.realtimeActual ??
-            temporalData.departure?.realtimeForecast ??
-            "",
+            departure.realtimeActual ??
+            departure.realtimeForecast ??
+            departure.realtimeEstimate,
         },
 
         platform:
-          locationData.platform?.actual ??
-          locationData.platform?.forecast ??
-          locationData.platform?.planned,
+          departureService.locationMetadata?.platform?.actual ??
+          departureService.locationMetadata?.platform?.forecast ??
+          departureService.locationMetadata?.platform?.planned,
 
         status,
         delayMinutes,
-      };
-    });
+      });
+    }
 
     return trainData;
   } catch (error) {

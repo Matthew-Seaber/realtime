@@ -101,7 +101,10 @@ interface BusData {
   delayMinutes: number;
 }
 
-export async function fetchBusData(leg: BusLeg, currentTime: Date) {
+export async function fetchBusData(
+  leg: BusLeg,
+  currentTime: Date,
+): Promise<BusData | null> {
   try {
     const params = new URLSearchParams({
       app_id: process.env.TRANSPORT_API_APP_ID!,
@@ -117,7 +120,10 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
       const errorText = await arrivalResponse.text();
       console.log(errorText);
 
-      throw new Error(`Failed to fetch bus data: ${arrivalResponse.status}`);
+      console.log(
+        `Failed to fetch bus data: ${arrivalResponse.statusText} (${arrivalResponse.status})`,
+      );
+      return null;
     }
 
     const arrivalData: TransportAPIStopTimetable = await arrivalResponse.json();
@@ -180,9 +186,11 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     const journeyResponse = await fetch(journeyURL.toString());
 
     if (!journeyResponse.ok) {
-      throw new Error(
-        `Failed to fetch bus journey data: ${journeyResponse.status}`,
+      console.log(
+        `Failed to fetch bus journey data: ${journeyResponse.statusText} (${journeyResponse.status})`,
       );
+
+      return null;
     }
 
     const journeyData: TransportAPIJourney = await journeyResponse.json();
@@ -193,7 +201,7 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     );
 
     if (!departureStop) {
-      console.log("No departure stop found")
+      console.log("No departure stop found");
       return null;
     }
 
@@ -207,7 +215,7 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     const arrivalExpected = destinationStop?.arrival?.expected;
 
     if (!departureAimed || !arrivalAimed) {
-      console.log("No departure or arrival aimed times")
+      console.log("No departure or arrival aimed times");
       return null;
     }
 
