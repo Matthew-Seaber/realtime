@@ -43,7 +43,7 @@ export const JourneyOptions: JourneyOption[] = [
       {
         type: "walk",
         description: "Walk to Kenilworth Station",
-        duration: 20,
+        duration: 15,
       },
       {
         type: "train",

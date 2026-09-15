@@ -201,7 +201,7 @@ export async function GET(request: Request) {
           const busData = await fetchBusData(leg, currentTime);
 
           if (!busData) {
-            console.log("no bus data");
+            console.log("No bus data returned");
             routeFailed = true;
             break;
           }
@@ -269,13 +269,12 @@ export async function GET(request: Request) {
 
         if (currentTime < now) {
           routeFailed = true;
-          console.log("current time < now");
           break;
         }
       }
 
       if (routeFailed) {
-        console.log("route failed");
+        console.log("Route failed");
         continue;
       }
 

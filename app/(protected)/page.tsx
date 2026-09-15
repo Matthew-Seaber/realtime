@@ -80,7 +80,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(15, 30, 0, 0);
+      arrivalTime.setHours(16, 30, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -206,7 +206,7 @@ export default function Home() {
       </div>
 
       <div className="mt-4 w-full flex flex-row items-end justify-between gap-4">
-        <div className="basis-3/5 flex flex-col gap-2 border-t border-theme-blue/60 p-6">
+        <div className="basis-3/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6">
           <div className="flex flex-col">
             {journeyOptions[0].legs.map((leg, index) => (
               <JourneyLeg

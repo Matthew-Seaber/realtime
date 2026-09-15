@@ -186,12 +186,14 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     }
 
     const journeyData: TransportAPIJourney = await journeyResponse.json();
+    console.log("Raw bus journey data:", journeyData);
 
     const departureStop = journeyData.stops.find(
       (stop) => stop.atcocode === leg.from,
     );
 
     if (!departureStop) {
+      console.log("No departure stop found")
       return null;
     }
 
@@ -205,6 +207,7 @@ export async function fetchBusData(leg: BusLeg, currentTime: Date) {
     const arrivalExpected = destinationStop?.arrival?.expected;
 
     if (!departureAimed || !arrivalAimed) {
+      console.log("No departure or arrival aimed times")
       return null;
     }
 
