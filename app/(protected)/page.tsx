@@ -81,7 +81,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(19, 0, 0, 0);
+      arrivalTime.setHours(21, 5, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -166,6 +166,17 @@ export default function Home() {
     return `${hours > 0 ? `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min${minutes === 1 ? "" : "s"}` : `${minutes} min${minutes === 1 ? "" : "s"}`}`;
   }
 
+  function getTotalJourneyMinutes(legs: JourneyLegResult[]): number {
+    if (legs.length === 0) return 0;
+
+    const departureTime = new Date(legs[0].departureTime);
+    const arrivalTime = new Date(legs.at(-1)!.arrivalTime);
+
+    return Math.round(
+      (arrivalTime.getTime() - departureTime.getTime()) / 60000,
+    );
+  }
+
   if (loading) {
     return (
       <div className="matrix-dots flex items-center justify-center min-h-screen p-6 font-mono">
@@ -212,7 +223,7 @@ export default function Home() {
 
       <div className="mt-4 w-full flex flex-row items-end justify-between gap-4">
         <div
-          className={`${singularRouteShowing ? "basis-5/5" : "basis-3/5"} basis-5/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6`}
+          className={`${singularRouteShowing ? "basis-5/5" : "basis-3/5"} basis-5/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6 pt-8`}
         >
           <div className="flex flex-col">
             {journeyOptions[0].legs.map((leg, index) => (
@@ -229,12 +240,7 @@ export default function Home() {
           <div className="flex flex-row items-center justify-between gap-4 text-theme-blue text-2xl">
             <p className="font-semibold">Total journey time</p>
             <p>
-              {formatDuration(
-                journeyOptions[0].legs.reduce(
-                  (sum, leg) => sum + leg.duration,
-                  0,
-                ),
-              )}
+              {formatDuration(getTotalJourneyMinutes(journeyOptions[0].legs))}
             </p>
           </div>
         </div>
@@ -269,10 +275,7 @@ export default function Home() {
                 <p className="font-semibold">Total journey time</p>
                 <p>
                   {formatDuration(
-                    journeyOptions[1].legs.reduce(
-                      (sum, leg) => sum + leg.duration,
-                      0,
-                    ),
+                    getTotalJourneyMinutes(journeyOptions[1].legs),
                   )}
                 </p>
               </div>

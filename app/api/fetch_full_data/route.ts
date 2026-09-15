@@ -153,8 +153,8 @@ export async function GET(request: Request) {
             if (!best) return currentTrain;
 
             const laterDeparture =
-              new Date(currentTrain.departureTime).getTime() >
-              new Date(best.departureTime).getTime();
+              new Date(currentTrain.arrivalTime).getTime() >
+              new Date(best.arrivalTime).getTime();
 
             return laterDeparture ? currentTrain : best;
           });

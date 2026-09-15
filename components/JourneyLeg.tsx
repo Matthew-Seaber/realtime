@@ -63,8 +63,8 @@ function JourneyLeg({
   const status =
     leg.type === "walk"
       ? new Date(leg.departureTime) < new Date()
-        ? "on time"
-        : "late"
+        ? "late"
+        : "on time"
       : leg.status;
 
   function formatTime(date: string) {
@@ -93,7 +93,7 @@ function JourneyLeg({
         {leg.type === "walk" && <Footprints className="size-8" />}
       </div>
 
-      <div className="min-w-0 pb-12">
+      <div className={`min-w-0 ${lastLeg ? "pb-2" : "pb-12"}`}>
         <h4 className="flex flex-row items-center gap-2 text-3xl">
           {leg.type === "walk" ? (
             leg.description
@@ -105,6 +105,7 @@ function JourneyLeg({
             </>
           )}
         </h4>
+
         <p className="text-lg text-theme-blue/80">
           {leg.type === "train" &&
             `${leg.operatorName} • ${leg.platform ? `Platform ${leg.platform}` : "Platform unknown"}`}
@@ -123,7 +124,10 @@ function JourneyLeg({
       <p
         className={`first-letter:uppercase text-xl text-end ${status === "on time" ? "text-theme-green" : status === "delayed" || status === "late" ? "text-theme-amber" : "text-theme-red"}`}
       >
-        {status}
+        {status}{" "}
+        {leg.type !== "walk" &&
+          leg.delayMinutes > 1 &&
+          `(${leg.delayMinutes} mins)`}
       </p>
     </div>
   );
