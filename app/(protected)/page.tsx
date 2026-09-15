@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { checkAuth } from "@/lib/auth-check";
-
 import JourneyLeg from "@/components/JourneyLeg";
 
 import { Separator } from "@/components/ui/separator";
@@ -81,12 +79,6 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const session = await checkAuth(true);
-
-      if (!session) {
-        return;
-      }
-
       const arrivalTime = new Date();
       arrivalTime.setHours(18, 0, 0, 0);
 

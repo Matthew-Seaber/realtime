@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 export const user = pgTable("user", {
   id: text("id").primaryKey().default(randomUUID()),
   email: text("email").notNull().unique(),
-  username: text("username").notNull().unique(),
+  name: text("name").notNull().unique(),
   image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -19,7 +19,6 @@ export const account = pgTable("account", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  issuer: text("issuer").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   accountId: text("account_id").notNull(),
