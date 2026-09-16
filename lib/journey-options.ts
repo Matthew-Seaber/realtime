@@ -36,46 +36,46 @@ interface JourneyOption {
 }
 
 export const JourneyOptions: JourneyOption[] = [
-  // {
-  //   id: "1",
-  //   description: "Train-only route",
+  {
+    id: "1",
+    description: "Train-only route",
 
-  //   legs: [
-  //     {
-  //       type: "walk",
-  //       description: "Walk to Kenilworth Station",
-  //       duration: 15,
-  //     },
-  //     {
-  //       type: "train",
-  //       from: "KNW",
-  //       to: "COV",
-  //       fromName: "Kenilworth",
-  //       toName: "Coventry",
-  //     },
-  //     {
-  //       type: "train",
-  //       from: "COV",
-  //       to: "BHM",
-  //       fromName: "Coventry",
-  //       toName: "Birmingham New St",
-  //     },
-  //     {
-  //       type: "train",
-  //       from: "BHM",
-  //       to: "UNI",
-  //       fromName: "Birmingham New St",
-  //       toName: "University",
-  //     },
-  //     {
-  //       type: "walk",
-  //       description: "Walk to uni",
-  //       duration: 5,
-  //     },
-  //   ],
+    legs: [
+      {
+        type: "walk",
+        description: "Walk to Kenilworth Station",
+        duration: 15,
+      },
+      {
+        type: "train",
+        from: "KNW",
+        to: "COV",
+        fromName: "Kenilworth",
+        toName: "Coventry",
+      },
+      {
+        type: "train",
+        from: "COV",
+        to: "BHM",
+        fromName: "Coventry",
+        toName: "Birmingham New St",
+      },
+      {
+        type: "train",
+        from: "BHM",
+        to: "UNI",
+        fromName: "Birmingham New St",
+        toName: "University",
+      },
+      {
+        type: "walk",
+        description: "Walk to uni",
+        duration: 5,
+      },
+    ],
 
-  //   connectionMinutesRequired: 5,
-  // },
+    connectionMinutesRequired: 5,
+  },
 
   {
     id: "2",

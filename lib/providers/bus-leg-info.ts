@@ -203,8 +203,6 @@ export async function fetchBusData(
     }
 
     const journeyData: TransportAPIJourney = await journeyResponse.json();
-    console.log("Raw bus journey data:");
-    console.dir(journeyData, { depth: null });
 
     const departureStop = journeyData.stops.find(
       (stop) => stop.atcocode === leg.from,
@@ -222,7 +220,7 @@ export async function fetchBusData(
     const departureAimed = departureStop.aimed?.departure;
     const arrivalAimed = destinationStop?.aimed?.arrival;
 
-    if (!departureAimed || !arrivalAimed) {
+    if (!destinationStop || !departureAimed || !arrivalAimed) {
       console.log("No departure or arrival aimed times");
       return null;
     }
@@ -235,20 +233,28 @@ export async function fetchBusData(
       arrivalAimed.date,
       arrivalAimed.time,
     );
-    const arrivalEstimateTime = bestArrivalBus.bestDepartureTime;
+    const departureEstimateTime = parseDateTime(
+      departureStop.date,
+      departureStop.time,
+    );
+    const arrivalEstimateTime = parseDateTime(
+      destinationStop.date,
+      destinationStop.time,
+    );
 
     if (
-      [departureAimedTime, arrivalAimedTime, arrivalEstimateTime].some((time) =>
-        Number.isNaN(time.getTime()),
-      )
+      [
+        departureAimedTime,
+        arrivalAimedTime,
+        departureEstimateTime,
+        arrivalEstimateTime,
+      ].some((time) => Number.isNaN(time.getTime()))
     ) {
       return null;
     }
 
     const delayMinutes = Math.round(
-      (bestArrivalBus.bestDepartureTime.getTime() -
-        bestArrivalBus.scheduledDepartureTime.getTime()) /
-        60000,
+      (arrivalEstimateTime.getTime() - arrivalAimedTime.getTime()) / 60000,
     );
     const status: BusData["status"] = delayMinutes > 1 ? "delayed" : "on time";
 
@@ -265,7 +271,7 @@ export async function fetchBusData(
 
       departure: {
         scheduled: departureAimedTime.toISOString(),
-        estimated: departureAimedTime.toISOString(), // Estimated departure unknown
+        estimated: departureEstimateTime.toISOString(),
       },
 
       status,

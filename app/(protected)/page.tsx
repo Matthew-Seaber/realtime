@@ -81,7 +81,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       const arrivalTime = new Date();
-      arrivalTime.setHours(11, 0, 0, 0);
+      arrivalTime.setHours(15, 0, 0, 0);
 
       if (new Date(arrivalTime) < new Date()) return;
 
@@ -221,9 +221,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="mt-4 w-full flex flex-row items-end justify-between gap-4">
+      <div className="mt-4 w-full flex flex-row items-end justify-between gap-8">
         <div
-          className={`${singularRouteShowing ? "basis-5/5" : "basis-3/5"} basis-5/5 flex flex-col gap-8 border-t border-theme-blue/60 p-6 pt-8`}
+          className={`${singularRouteShowing ? "basis-5/5" : "basis-3/5"} flex flex-col gap-8 border-t border-theme-blue/60 p-6 pt-8`}
         >
           <div className="flex flex-col">
             {journeyOptions[0].legs.map((leg, index) => (
@@ -231,6 +231,7 @@ export default function Home() {
                 key={index}
                 leg={leg}
                 lastLeg={index === journeyOptions[0].legs.length - 1}
+                textSize="normal"
               />
             ))}
           </div>
@@ -265,6 +266,7 @@ export default function Home() {
                     key={index}
                     leg={leg}
                     lastLeg={index === journeyOptions[1].legs.length - 1}
+                    textSize="small"
                   />
                 ))}
               </div>
