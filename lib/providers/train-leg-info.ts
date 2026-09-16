@@ -153,6 +153,10 @@ export async function fetchTrainData(
       timeTo: currentTime.toISOString(),
     });
 
+    if (!accessToken) {
+      throw new Error("No RTT access token found")
+    }
+
     const [departureResponse, arrivalResponse] = await Promise.all([
       fetch(`https://data.rtt.io/rtt/location?${departureParams.toString()}`, {
         headers: {
