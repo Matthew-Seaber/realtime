@@ -79,7 +79,7 @@ function JourneyLeg({
 
   return (
     <div
-      className={`relative grid ${textSize === "small" ? "grid-cols-[20px_64px_48px_1fr_88px]" : "grid-cols-[24px_108px_48px_1fr_124px]"} gap-4`}
+      className={`relative grid ${textSize === "small" ? "grid-cols-[10px_48px_28px_1fr_92px]" : "grid-cols-[24px_96px_48px_1fr_124px]"} gap-4`}
     >
       <div className="w-4 relative flex justify-center shrink-0">
         {!lastLeg && (
@@ -87,11 +87,11 @@ function JourneyLeg({
         )}
 
         <div
-          className={`mt-2 relative ${textSize === "small" ? "size-3" : "size-4"} rounded-full z-20 bg-theme-blue`}
+          className={`mt-1.5 relative ${textSize === "small" ? "size-3" : "size-4"} rounded-full z-20 bg-theme-blue`}
         />
       </div>
 
-      <h5 className={`${textSize === "small" ? "text-lg" : "text-2xl"}`}>
+      <h5 className={`${textSize === "small" ? "text-md" : "text-2xl"}`}>
         {formatTime(leg.departureTime)}
       </h5>
 
@@ -117,7 +117,7 @@ function JourneyLeg({
         className={`min-w-0 ${lastLeg ? "pb-2" : textSize === "small" ? "pb-4" : "pb-12"}`}
       >
         <h4
-          className={`flex flex-row items-center gap-2 ${textSize === "small" ? "text-xl" : "text-3xl"}`}
+          className={`flex flex-row items-center gap-1.5 ${textSize === "small" ? "text-lg" : "text-3xl"}`}
         >
           {leg.type === "walk" ? (
             leg.description
