@@ -16,6 +16,7 @@ interface BusLegOption {
   toName: string;
 
   busService?: string[];
+  busDirections?: string[];
 }
 
 interface WalkingLegOption {
@@ -35,9 +36,50 @@ interface JourneyOption {
 }
 
 export const JourneyOptions: JourneyOption[] = [
+  // {
+  //   id: "1",
+  //   description: "Train-only route",
+
+  //   legs: [
+  //     {
+  //       type: "walk",
+  //       description: "Walk to Kenilworth Station",
+  //       duration: 15,
+  //     },
+  //     {
+  //       type: "train",
+  //       from: "KNW",
+  //       to: "COV",
+  //       fromName: "Kenilworth",
+  //       toName: "Coventry",
+  //     },
+  //     {
+  //       type: "train",
+  //       from: "COV",
+  //       to: "BHM",
+  //       fromName: "Coventry",
+  //       toName: "Birmingham New St",
+  //     },
+  //     {
+  //       type: "train",
+  //       from: "BHM",
+  //       to: "UNI",
+  //       fromName: "Birmingham New St",
+  //       toName: "University",
+  //     },
+  //     {
+  //       type: "walk",
+  //       description: "Walk to uni",
+  //       duration: 5,
+  //     },
+  //   ],
+
+  //   connectionMinutesRequired: 5,
+  // },
+
   {
-    id: "1",
-    description: "Train-only route",
+    id: "2",
+    description: "Via bus from New St to University",
 
     legs: [
       {
@@ -60,53 +102,13 @@ export const JourneyOptions: JourneyOption[] = [
         toName: "Birmingham New St",
       },
       {
-        type: "train",
-        from: "BHM",
-        to: "UNI",
-        fromName: "Birmingham New St",
-        toName: "University",
-      },
-      {
-        type: "walk",
-        description: "Walk to uni",
-        duration: 5,
-      },
-    ],
-
-    connectionMinutesRequired: 5,
-  },
-
-  {
-    id: "2",
-    description: "Via bus from New St to University",
-
-    legs: [
-      {
-        type: "walk",
-        description: "Walk to Kenilworth Station",
-        duration: 20,
-      },
-      {
-        type: "train",
-        from: "KNW",
-        to: "COV",
-        fromName: "Kenilworth",
-        toName: "Coventry",
-      },
-      {
-        type: "train",
-        from: "COV",
-        to: "BHM",
-        fromName: "Coventry",
-        toName: "Birmingham New St",
-      },
-      {
         type: "bus",
         from: "43000201703",
         to: "43000309401",
         fromName: "St Martin's Queensway (NS3)",
         toName: "University Station (QE)",
         busService: ["X20", "X21", "X22"],
+        busDirections: ["outbound"],
       },
       {
         type: "walk",

@@ -5,6 +5,7 @@ interface BusLeg {
   fromName: string;
   toName: string;
   busService?: string[];
+  busDirections?: string[];
 }
 
 interface TransportAPIDeparture {
@@ -13,6 +14,7 @@ interface TransportAPIDeparture {
 
   line: string;
   line_name: string;
+  dir: string;
   direction: string;
   operator_name: string;
 
@@ -42,23 +44,15 @@ interface TransportAPIJourneyStop {
   atcocode: string;
   name: string;
 
-  arrival?: {
-    aimed: {
-      date: string;
-      time: string;
-    };
-    expected?: {
-      date: string;
-      time: string;
-    };
-  };
+  time: string;
+  date: string;
 
-  departure?: {
-    aimed: {
+  aimed?: {
+    arrival: {
       date: string;
       time: string;
     };
-    expected?: {
+    departure?: {
       date: string;
       time: string;
     };
@@ -135,12 +129,21 @@ export async function fetchBusData(
         return false;
       }
 
+      if (leg.busDirections && !leg.busDirections.includes(arrival.dir)) {
+        return false;
+      }
+
       if (arrival.status?.cancellation?.value) {
         return false;
       }
 
       return true;
     });
+
+    if (filteredArrivals.length === 0) {
+      console.log("No filtered arrivals found");
+      return null;
+    }
 
     const latestDepartureTime = new Date(currentTime.getTime() - 60 * 1000); // Allows for unloading/loading time at the stop
 
@@ -166,6 +169,7 @@ export async function fetchBusData(
       });
 
     if (viableArrivals.length === 0) {
+      console.log("No viable arrivals found");
       return null;
     }
 
@@ -180,6 +184,11 @@ export async function fetchBusData(
     }
 
     const journeyURL = new URL(bestArrivalBus.arrival.id);
+
+    const journeyURLPathParts = journeyURL.pathname.split("/");
+    journeyURLPathParts[8] = leg.from;
+    journeyURL.pathname = journeyURLPathParts.join("/");
+
     journeyURL.searchParams.set("app_id", process.env.TRANSPORT_API_APP_ID!);
     journeyURL.searchParams.set("app_key", process.env.TRANSPORT_API_APP_KEY!);
 
@@ -194,7 +203,8 @@ export async function fetchBusData(
     }
 
     const journeyData: TransportAPIJourney = await journeyResponse.json();
-    console.log("Raw bus journey data:", journeyData);
+    console.log("Raw bus journey data:");
+    console.dir(journeyData, { depth: null });
 
     const departureStop = journeyData.stops.find(
       (stop) => stop.atcocode === leg.from,
@@ -209,10 +219,8 @@ export async function fetchBusData(
       (stop) => stop.atcocode === leg.to,
     );
 
-    const departureAimed = departureStop.departure?.aimed;
-    const departureExpected = departureStop.departure?.expected;
-    const arrivalAimed = destinationStop?.arrival?.aimed;
-    const arrivalExpected = destinationStop?.arrival?.expected;
+    const departureAimed = departureStop.aimed?.departure;
+    const arrivalAimed = destinationStop?.aimed?.arrival;
 
     if (!departureAimed || !arrivalAimed) {
       console.log("No departure or arrival aimed times");
@@ -223,31 +231,24 @@ export async function fetchBusData(
       departureAimed.date,
       departureAimed.time,
     );
-    const departureEstimateTime = departureExpected
-      ? parseDateTime(departureExpected.date, departureExpected.time)
-      : departureAimedTime;
     const arrivalAimedTime = parseDateTime(
       arrivalAimed.date,
       arrivalAimed.time,
     );
-    const arrivalEstimateTime = arrivalExpected
-      ? parseDateTime(arrivalExpected.date, arrivalExpected.time)
-      : arrivalAimedTime;
+    const arrivalEstimateTime = bestArrivalBus.bestDepartureTime;
 
     if (
-      [
-        departureAimedTime,
-        departureEstimateTime,
-        arrivalAimedTime,
-        arrivalEstimateTime,
-      ].some((time) => Number.isNaN(time.getTime())) ||
-      departureEstimateTime >= arrivalEstimateTime
+      [departureAimedTime, arrivalAimedTime, arrivalEstimateTime].some((time) =>
+        Number.isNaN(time.getTime()),
+      )
     ) {
       return null;
     }
 
     const delayMinutes = Math.round(
-      (arrivalEstimateTime.getTime() - arrivalAimedTime.getTime()) / 60000,
+      (bestArrivalBus.bestDepartureTime.getTime() -
+        bestArrivalBus.scheduledDepartureTime.getTime()) /
+        60000,
     );
     const status: BusData["status"] = delayMinutes > 1 ? "delayed" : "on time";
 
@@ -264,7 +265,7 @@ export async function fetchBusData(
 
       departure: {
         scheduled: departureAimedTime.toISOString(),
-        estimated: departureEstimateTime.toISOString(),
+        estimated: departureAimedTime.toISOString(), // Estimated departure unknown
       },
 
       status,

@@ -108,8 +108,9 @@ export async function GET(request: Request) {
       let routeFailed = false;
 
       const legResults: JourneyLegResult[] = [];
+      let lastWalkResult: WalkingLegResult | null = null;
 
-      for (const leg of journey.legs.toReversed()) {
+      for (const [index, leg] of journey.legs.toReversed().entries()) {
         let duration;
 
         if (leg.type === "train") {
@@ -152,11 +153,11 @@ export async function GET(request: Request) {
           const bestTrain = validTrains.reduce((best, currentTrain) => {
             if (!best) return currentTrain;
 
-            const laterDeparture =
+            const laterArrival =
               new Date(currentTrain.arrivalTime).getTime() >
               new Date(best.arrivalTime).getTime();
 
-            return laterDeparture ? currentTrain : best;
+            return laterArrival ? currentTrain : best;
           });
 
           const selectedTrain = bestTrain.train;
@@ -184,6 +185,20 @@ export async function GET(request: Request) {
             status: selectedTrain.status,
             delayMinutes: selectedTrain.delayMinutes,
           });
+
+          if (
+            lastWalkResult &&
+            index === 1 &&
+            journey.legs[journey.legs.length - 1].type === "walk"
+          ) {
+            lastWalkResult.departureTime = new Date(
+              bestTrain.arrivalTime,
+            ).toISOString();
+            lastWalkResult.arrivalTime = new Date(
+              new Date(bestTrain.arrivalTime).getTime() +
+                lastWalkResult.duration * 60000,
+            ).toISOString();
+          }
 
           duration =
             new Date(bestTrain.arrivalTime).getTime() -
@@ -230,6 +245,20 @@ export async function GET(request: Request) {
             delayMinutes: busData.delayMinutes,
           });
 
+          if (
+            lastWalkResult &&
+            index === 1 &&
+            journey.legs[journey.legs.length - 1].type === "walk"
+          ) {
+            lastWalkResult.departureTime = new Date(
+              busData.arrival.estimated!,
+            ).toISOString();
+            lastWalkResult.arrivalTime = new Date(
+              new Date(busData.arrival.estimated!).getTime() +
+                lastWalkResult.duration * 60000,
+            ).toISOString();
+          }
+
           duration =
             new Date(busData.arrival.estimated!).getTime() -
             new Date(busData.departure.estimated!).getTime();
@@ -246,7 +275,7 @@ export async function GET(request: Request) {
         } else if (leg.type === "walk") {
           duration = leg.duration * 60000;
 
-          legResults.push({
+          const walkResult: WalkingLegResult = {
             type: "walk",
 
             description: leg.description,
@@ -256,7 +285,13 @@ export async function GET(request: Request) {
               currentTime.getTime() - duration,
             ).toISOString(),
             arrivalTime: currentTime.toISOString(),
-          });
+          };
+
+          legResults.push(walkResult);
+
+          if (index === 0) {
+            lastWalkResult = walkResult;
+          }
         } else {
           return NextResponse.json(
             { error: "Invalid leg type" },
