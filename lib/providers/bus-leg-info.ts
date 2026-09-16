@@ -1,3 +1,5 @@
+import { parseUKDateTime } from "@/lib/timezone-converter";
+
 interface BusLeg {
   type: "bus";
   from: string; // ATCO code
@@ -60,7 +62,7 @@ interface TransportAPIJourneyStop {
 }
 
 function parseDateTime(date: string, time: string): Date {
-  return new Date(`${date}T${time}`);
+  return parseUKDateTime(date, time);
 }
 
 interface TransportAPIJourney {

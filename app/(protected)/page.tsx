@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import JourneyLeg from "@/components/JourneyLeg";
+import { getUKTimeAt } from "@/lib/timezone-converter";
 
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Split } from "lucide-react";
@@ -80,8 +81,7 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const arrivalTime = new Date();
-      arrivalTime.setHours(23, 0, 0, 0); // UK time
+      const arrivalTime = getUKTimeAt(23);
 
       if (new Date(arrivalTime) < new Date()) return;
 
