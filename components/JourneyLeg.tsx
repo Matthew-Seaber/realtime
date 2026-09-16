@@ -114,7 +114,7 @@ function JourneyLeg({
       </div>
 
       <div
-        className={`min-w-0 ${lastLeg ? "pb-2" : textSize === "small" ? "pb-4" : "pb-12"}`}
+        className={`min-w-0 ${lastLeg ? "pb-2" : textSize === "small" ? "pb-6" : "pb-12"}`}
       >
         <h4
           className={`flex flex-row items-center gap-1.5 ${textSize === "small" ? "text-lg" : "text-3xl"}`}

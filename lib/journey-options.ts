@@ -84,14 +84,14 @@ export const JourneyOptions: JourneyOption[] = [
     legs: [
       {
         type: "walk",
-        description: "Walk to Kenilworth Station",
-        duration: 15,
+        description: "Walk to Leamington Spa Station",
+        duration: 45,
       },
       {
         type: "train",
-        from: "KNW",
+        from: "LMS",
         to: "COV",
-        fromName: "Kenilworth",
+        fromName: "Leamington Spa",
         toName: "Coventry",
       },
       {
