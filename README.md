@@ -7,7 +7,7 @@ Realtime is a multi-modal journey planner which uses live UK rail/bus data to ca
     <img src="/public/site-preview-1.png" alt="Screenshot of the website with one route displayed" />
 </picture>
 
-### How to access
+## How to access
 Use the live demo at the bottom of the README (to login, use the email "test@example.com" and password "hctester")
 ### OR
 - Download the project files as a `.ZIP` or clone the repo using `git clone https://github.com/matthew-seaber/realtime.git` in your terminal

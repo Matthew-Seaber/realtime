@@ -81,7 +81,7 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const arrivalTime = getUKTimeAt(23);
+      const arrivalTime = getUKTimeAt(16, 30);
 
       if (new Date(arrivalTime) < new Date()) return;
 
